@@ -8,17 +8,28 @@
     <link type="text/css" rel="stylesheet" href="index.css">
 </head>
 <body>
-    <div class="header-section">
+    <div class="sep-block">
         <p>Your name is <b id="user_name"></b></p>
     </div>
-    <div class="controls-section">
-        <select id="rooms_list" size="8"></select>
-        <div>
-            <label for="new_room_name">New room name</label>
-            <input type="text" id="new_room_name" />
+    <div class="sep-block controls-section">
+        <select id="rooms_list" size="8" class="sep-block"></select>
+        <div class="sep-block">
+            <div class="sep-block">
+                <label for="new_room_name">New room name</label>
+                <input type="text" id="new_room_name" />
+            </div>
+            <div class="sep-block">
+                <button id="create_room">Create room</button>
+                <button id="join_room" disabled>Join room</button>
+            </div>
         </div>
-        <button id="create_room">Create room</button>
-        <button id="join_room">Join room</button>
+        <div id="in_room_section" class="sep-block" style="display:none">
+            <p>You are in a room <b id="room_name"></b></p>
+            <div class="sep-block">
+                <label for="room_parties_list">Room members:</label>
+            </div>
+            <select id="room_parties_list" size="5" class="sep-block"></select>
+        </div>
     </div>
 </body>
 </html>

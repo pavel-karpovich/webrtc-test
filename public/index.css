@@ -4,22 +4,15 @@ html, body {
   padding: 0;
 }
 
-.header-section {
-  margin: 16px 16px 0 16px;
-}
 .controls-section {
   display: flex;
   flex-flow: row nowrap;
-  margin: 16px;
 }
 
 #rooms_list {
-  margin-left: 16px;
   min-width: 200px;
 }
-#create_room {
-  margin-left: 16px;
-}
-#join_room {
-  margin-left: 16px;
+
+.sep-block {
+  margin: 8px;
 }
