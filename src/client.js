@@ -29,6 +29,10 @@ createRoomButton.addEventListener('click', () => {
         alert('New room name is empty');
         return;
     }
+    if ([].find.call(roomsListElement.children, optionElement => optionElement.textContent === newRoomNameInput.value)) {
+        alert('The room with such name already exists');
+        return;
+    }
     socket.emit('room:create', {
         name: newRoomNameInput.value,
     });
