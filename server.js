@@ -85,7 +85,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        const delIndex = allClients.indexOf(socket);
+        const delIndex = state.allClients.indexOf(socket);
         if (delIndex !== -1) {
             state.allClients.splice(delIndex, 1);
         }
