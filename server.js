@@ -89,7 +89,7 @@ io.on('connection', (socket) => {
         if (delIndex !== -1) {
             state.allClients.splice(delIndex, 1);
         }
-        const emptyRooms = Object.keys(state.rooms).find(id => state.rooms[id].parties.length === 1 && state.rooms[id].parties[0].socket === socket);
+        const emptyRooms = Object.keys(state.rooms).filter(id => state.rooms[id].parties.length === 1 && state.rooms[id].parties[0].socket === socket);
         if (emptyRooms.length) {
             emptyRooms.forEach(id => {
                 logger.log(`Delete room ${id}`);
