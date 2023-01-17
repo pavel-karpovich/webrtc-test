@@ -52,6 +52,10 @@ io.on('connection', (socket) => {
 
     state.allClients.push(socket);
 
+    socket.on('room:list', () => {
+        updateRoomsList();
+    });
+
     socket.on('room:create', data => {
         const id = uniqueId();
         const roomName = data.name;

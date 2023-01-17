@@ -5,8 +5,20 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <link type="text/css" rel="stylesheet" href="index.css">
 </head>
 <body>
-    
+    <div class="header-section">
+        <p>Your name is <b id="user_name"></b></p>
+    </div>
+    <div class="controls-section">
+        <select id="rooms_list" size="8"></select>
+    </div>
+    <div>
+        <label for="new_room_name">New room name</label>
+        <input type="text" id="new_room_name" />
+    </div>
+    <button id="create_room">Create room</button>
+    <button id="join_room">Join room</button>
 </body>
 </html>
