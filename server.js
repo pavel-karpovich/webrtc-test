@@ -89,12 +89,20 @@ io.on('connection', (socket) => {
         if (delIndex !== -1) {
             state.allClients.splice(delIndex, 1);
         }
-        const emptyRooms = Object.keys(state.rooms).filter(id => state.rooms[id].parties.length === 1 && state.rooms[id].parties[0].socket === socket);
-        if (emptyRooms.length) {
-            emptyRooms.forEach(id => {
+        const roomsWithClient = Object.keys(state.rooms).filter(id => state.rooms[id].parties.find(party => party.socket === socket));
+        let roomWasDeleted = false;
+        roomsWithClient.forEach(id => {
+            const delIndex = state.rooms[id].parties.findIndex(party => party.socket === socket);
+            state.rooms[id].parties.splice(delIndex, 1);
+            if (state.rooms[id].parties.length) {
+                updateRoom(state.rooms[id]);
+            } else {
                 logger.log(`Delete room ${id}`);
-                delete state.emptyRooms[id];
-            });
+                delete state.rooms[id];
+                roomWasDeleted = true;
+            }
+        });
+        if (roomWasDeleted) {
             updateRoomsList();
         }
     });
