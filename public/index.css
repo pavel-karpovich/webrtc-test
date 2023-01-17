@@ -15,6 +15,7 @@ html, body {
 
 #rooms_list {
   margin-left: 16px;
+  min-width: 200px;
 }
 #create_room {
   margin-left: 16px;
