@@ -1,4 +1,7 @@
-const {Server} = require('socket.io');
+const http = require('http');
+const path = require('path');
+const express = require('express');
+const socketIO = require('socket.io');
 
 
 const port = process.env.PORT || 5000;
@@ -12,7 +15,9 @@ const logger = {
     log: (...args) => console.log((new Date).toJSON(), ...args),
 };
 
-const io = new Server(port, {
+const app = express();
+const httpServer = http.Server(app);
+const io = socketIO(httpServer, {
     cors: {
       origin: [
         'http://localhost:5001',
@@ -91,4 +96,8 @@ io.on('connection', (socket) => {
     });
 });
 
-logger.log(`Server started on port ${port}`);
+app.use(express.static(path.resolve(__dirname, 'dist')));
+
+httpServer.listen(port, () => {
+    logger.log(`Server started on port ${port}`);
+});
