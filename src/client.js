@@ -76,7 +76,7 @@ socket.on('room:joined', data => {
         console.error('Room:join for id', data.id, 'but there is no known room with such id');
         return;
     }
-    roomNameSpan.textContent = roomOption.value;
+    roomNameSpan.textContent = roomOption.textContent;
 
     roomPartiesListElement.innerHTML = '';
     const yourPartyOption = document.createElement('optgroup');
