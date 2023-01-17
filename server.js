@@ -34,7 +34,7 @@ const state = {
 function updateRoom(room) {
     const roomParties = room.parties.map(party => party.name);
     room.parties.forEach(party => {
-        party.socket.emit('room:update', {id: roomId, parties: roomParties});
+        party.socket.emit('room:update', {id: room.id, parties: roomParties});
     });
 }
 
