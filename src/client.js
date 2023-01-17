@@ -14,7 +14,7 @@ let userRoomId = null;
 const userNameSpan = document.getElementById('user_name');
 const roomNameSpan = document.getElementById('room_name');
 const inRoomSection = document.getElementById('in_room_section');
-userNameElement.textContent = userName;
+userNameSpan.textContent = userName;
 
 const roomsListElement = document.getElementById('rooms_list');
 const roomPartiesListElement = document.getElementById('room_parties_list');
