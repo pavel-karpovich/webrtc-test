@@ -9,7 +9,8 @@ html, body {
   flex-flow: row nowrap;
 }
 
-#rooms_list {
+#rooms_list,
+#room_parties_list {
   min-width: 200px;
 }
 

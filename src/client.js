@@ -56,6 +56,7 @@ joinRoomButton.addEventListener('click', () => {
         id: selectedRoomId,
         name: userName,
     });
+    userRoomId = data.id;
 });
 
 socket.on('room:list', data => {
@@ -83,7 +84,6 @@ socket.on('room:joined', data => {
     roomPartiesListElement.appendChild(yourPartyOption);
 
     inRoomSection.style.display = 'block';
-    userRoomId = data.id;
 });
 
 socket.on('room:update', data => {
