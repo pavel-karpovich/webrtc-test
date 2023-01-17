@@ -1,0 +1,11 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "author": "Pavel Karpovich",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "socket.io": "^4.5.4"
+  }
+}

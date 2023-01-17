@@ -1,0 +1,21 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "main": "client.js",
+  "author": "Pavel Karpovich",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack serve --mode development"
+  },
+  "devDependencies": {
+    "html-webpack-plugin": "^5.5.0",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.11.1"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.5.4"
+  }
+}
