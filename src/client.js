@@ -102,11 +102,6 @@ socket.on('room:joined', data => {
     }
     roomNameSpan.textContent = roomOption.textContent;
 
-    roomPartiesListElement.innerHTML = '';
-    const yourPartyOption = document.createElement('optgroup');
-    yourPartyOption.setAttribute('label', userName);
-    roomPartiesListElement.appendChild(yourPartyOption);
-
     inRoomSection.style.display = 'block';
     bandwithSection.style.display = 'block';
 });
