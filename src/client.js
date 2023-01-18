@@ -57,7 +57,8 @@ peerConnection.onicecandidate = function (event) {
 peerConnection.ontrack = function (event) {
     if (event.streams && event.streams[0]) {
         console.log('peerConnection.ontrack set video stream');
-        videoElement.setAttributes('src', URL.createObjectURL(event.streams[0]));
+        // videoElement.setAttributes('src', URL.createObjectURL(event.streams[0]));
+        videoElement.srcObject = event.streams[0];
     }
 };
 let localStream = null;
