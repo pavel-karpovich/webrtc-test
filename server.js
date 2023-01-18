@@ -34,7 +34,11 @@ const state = {
 function updateRoom(room) {
     const roomParties = room.parties.map(party => party.name);
     room.parties.forEach(party => {
-        party.socket.emit('room:update', {id: room.id, parties: roomParties});
+        party.socket.emit('room:update', {
+            id: room.id,
+            parties: roomParties,
+            bandwidth: room.bandwidth,
+        });
     });
 }
 
@@ -64,6 +68,7 @@ io.on('connection', (socket) => {
             id,
             name: roomName,
             parties: [],
+            bandwidth: 300,
         };
         updateRoomsList();
     });
@@ -79,6 +84,18 @@ io.on('connection', (socket) => {
             });
             updateRoom(state.rooms[roomId]);
             socket.emit('room:joined', {id: roomId});
+        } else {
+            logger.log(`No room with id ${roomId}`);
+        }
+    });
+
+    socket.on('room:set-bandwidth', payload => {
+        const roomId = payload.id;
+        const bandwidth = payload.bandwidth;
+        if (roomId in state.rooms) {
+            logger.log(`Set bandwidth to ${bandwidth} Kb/s for room "${state.rooms[roomId].name}"`);
+            state.rooms[roomId].bandwidth = Number(bandwidth);
+            updateRoom(state.rooms[roomId]);
         } else {
             logger.log(`No room with id ${roomId}`);
         }

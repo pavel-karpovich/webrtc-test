@@ -13,6 +13,7 @@ let userRoomId = null;
 
 const userNameSpan = document.getElementById('user_name');
 const roomNameSpan = document.getElementById('room_name');
+const currentBandwidthSpan = document.getElementById('current_bandwidth');
 const inRoomSection = document.getElementById('in_room_section');
 userNameSpan.textContent = userName;
 
@@ -21,12 +22,18 @@ const roomPartiesListElement = document.getElementById('room_parties_list');
 const newRoomNameInput = document.getElementById('new_room_name');
 const createRoomButton = document.getElementById('create_room');
 const joinRoomButton = document.getElementById('join_room');
+const setBandwidthButton = document.getElementById('set_bandwidth');
+const bandwidthInput = document.getElementById('bandwidth');
 
 const socket = io('wss://web-rtc-test.herokuapp.com', {
     autoConnect: true,
 });
 
 socket.emit('room:list');
+
+function updateBandwidth(bandwidth) {
+    currentBandwidthSpan.textContent = bandwidth;
+}
 
 createRoomButton.addEventListener('click', () => {
     if (!newRoomNameInput.value) {
@@ -57,6 +64,22 @@ joinRoomButton.addEventListener('click', () => {
         name: userName,
     });
     userRoomId = data.id;
+});
+
+setBandwidthButton.addEventListener('button', () => {
+    if (!bandwidthInput.value) {
+        alert('Bandwith is empty');
+        return;
+    }
+    const bandwidth = Number(bandwidthInput.value);
+    if (isNaN(bandwidth)) {
+        alert('Randwith is not a number');
+        return;
+    }
+    socket.emit('room:set-bandwidth', {
+        id: userRoomId,
+        bandwidth,
+    });
 });
 
 socket.on('room:list', data => {
@@ -97,4 +120,5 @@ socket.on('room:update', data => {
         partyOption.setAttribute('label', partyName);
         roomPartiesListElement.appendChild(partyOption);
     });
+    updateBandwidth(data.bandwidth);
 });
