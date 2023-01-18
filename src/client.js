@@ -175,7 +175,7 @@ shareScreenButton.addEventListener('click', () => {
                 const newSdp = setMediaBitrate(data.sdp, 'video', bandwidth);
                 socket.emit('webrtc:offer', {
                     id: userRoomId,
-                    spd: newSdp,
+                    sdp: newSdp,
                 });
             });
         });
