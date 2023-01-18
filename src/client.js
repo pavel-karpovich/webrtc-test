@@ -57,7 +57,6 @@ peerConnection.onicecandidate = function (event) {
 peerConnection.ontrack = function (event) {
     if (event.streams && event.streams[0]) {
         console.log('peerConnection.ontrack set video stream');
-        // videoElement.setAttributes('src', URL.createObjectURL(event.streams[0]));
         videoElement.srcObject = event.streams[0];
     }
 };
@@ -169,7 +168,7 @@ shareScreenButton.addEventListener('click', () => {
         mediaStream.getTracks().forEach(track => {
             peerConnection.addTrack(track, mediaStream);
         })
-        // video2.setAttribute('src', URL.createObjectURL(mediaStream));
+        videoElement.srcObject = mediaStream;
         console.log('Create WebRTC offer');
         peerConnection.createOffer().then(data => {
             peerConnection.setLocalDescription(data).then(() => {
