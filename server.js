@@ -97,9 +97,51 @@ io.on('connection', (socket) => {
             state.rooms[roomId].bandwidth = Number(bandwidth);
             updateRoom(state.rooms[roomId]);
         } else {
-            logger.log(`No room with id ${roomId}`);
+            logger.log(`room:set-bandwidth - No room with id ${roomId}`);
         }
     });
+
+    socket.on('webrtc:offer', payload => {
+        const roomId = payload.id;
+        if (roomId in state.rooms) {
+            logger.log(`Send webrtc:offer`);
+            state.rooms[roomId].parties.forEach(party => {
+                if (party.socket !== socket) {
+                    party.socket.emit('webrtc:offer', payload);
+                }
+            });
+        } else {
+            logger.log(`webrtc:offer - No room with id ${roomId}`);
+        }
+    });
+
+    socket.on('webrtc:answer', payload => {
+        const roomId = payload.id;
+        if (roomId in state.rooms) {
+            logger.log(`Send webrtc:answer`);
+            state.rooms[roomId].parties.forEach(party => {
+                if (party.socket !== socket) {
+                    party.socket.emit('webrtc:answer', payload);
+                }
+            });
+        } else {
+            logger.log(`webrtc:answer - No room with id ${roomId}`);
+        }
+    });
+
+    socket.on('webrtc:ice-candidate', payload => {
+        const roomId = payload.id;
+        if (roomId in state.rooms) {
+            logger.log(`Send webrtc:ice-candidate`);
+            state.rooms[roomId].parties.forEach(party => {
+                if (party.socket !== socket) {
+                    party.socket.emit('webrtc:ice-candidate', payload);
+                }
+            });
+        } else {
+            logger.log(`webrtc:ice-candidate - No room with id ${roomId}`);
+        }
+    })
 
     socket.on('disconnect', () => {
         const delIndex = state.allClients.indexOf(socket);

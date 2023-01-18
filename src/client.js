@@ -1,3 +1,4 @@
+import e from 'express';
 import {io} from 'socket.io-client';
 import {uniqueNamesGenerator, adjectives, animals} from 'unique-names-generator';
 
@@ -10,12 +11,21 @@ const userName = uniqueNamesGenerator({
     style: 'capital',
 });
 let userRoomId = null;
+let bandwidth = 300;
+let hasSDP = false;
+let storedICECandidates = [];
+
+const webRtcICEServers = [
+    {urls: 'stun:stun.l.google.com:19302'},
+    {urls: 'turn:oceanturn1.brightpattern.com:443', username: 'turnserver', credential: 'turnserverturnserver'},
+];
 
 const userNameSpan = document.getElementById('user_name');
 const roomNameSpan = document.getElementById('room_name');
 const currentBandwidthSpan = document.getElementById('current_bandwidth');
 const inRoomSection = document.getElementById('in_room_section');
 const bandwithSection = document.getElementById('bandwith_section');
+const videoSection = document.getElementById('video_section');
 userNameSpan.textContent = userName;
 
 const roomsListElement = document.getElementById('rooms_list');
@@ -25,6 +35,8 @@ const createRoomButton = document.getElementById('create_room');
 const joinRoomButton = document.getElementById('join_room');
 const setBandwidthButton = document.getElementById('set_bandwidth');
 const bandwidthInput = document.getElementById('bandwidth');
+const shareScreenButton = document.getElementById('share_screen');
+const videoElement = document.getElementById('video');
 
 const socket = io('wss://web-rtc-test.herokuapp.com', {
     autoConnect: true,
@@ -32,8 +44,78 @@ const socket = io('wss://web-rtc-test.herokuapp.com', {
 
 socket.emit('room:list');
 
+const peerConnection = new RTCPeerConnection({iceServers: webRtcICEServers});
+peerConnection.onicecandidate = function (event) {
+    if (event.candidate) {
+        sendIceCandidate(event.candidate);
+        socket.emit('webrtc:ice-candidate', {
+            id: userRoomId,
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex,
+        });
+    }
+};
+peerConnection.ontrack = function (event) {
+    if (event.streams && event.streams[0]) {
+        console.log('peerConnection.ontrack set video stream');
+        videoElement.setAttributes('src', URL.createObjectURL(ev.streams[0]));
+    }
+};
+let localStream = null;
+
+function addICECandidate(iceCandidateData) {
+    if (peerConnection.localDescription) {
+        peerConnection.addIceCandidate(new RTCIceCandidate(iceCandidateData)).then(() => {
+
+        });
+    } else {
+        storedICECandidates.push(iceCandidateData);
+    }
+}
+
+function setMediaBitrate(sdp, media, bitrate) {
+    var lines = sdp.split('\n');
+    var line = -1;
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].indexOf('m=' + media) === 0) {
+        line = i;
+        break;
+      }
+    }
+    if (line === -1) {
+      console.debug('Could not find the m line for', media);
+      return sdp;
+    }
+    console.debug('Found the m line for', media, 'at line', line);
+  
+    // Pass the m line
+    line++;
+  
+    // Skip i and c lines
+    while(lines[line].indexOf('i=') === 0 || lines[line].indexOf('c=') === 0) {
+      line++;
+    }
+  
+    // If we're on a b line, replace it
+    if (lines[line].indexOf('b') === 0) {
+      console.debug('Replaced b line at line', line);
+      lines[line] = 'b=AS:' + bitrate;
+      return lines.join('\n');
+    }
+    
+    // Add a new b line
+    console.debug('Adding new b line before line', line);
+    var newLines = lines.slice(0, line);
+    newLines.push('b=AS:' + bitrate);
+    newLines = newLines.concat(lines.slice(line, lines.length));
+    return newLines.join('\n');
+}
+
+
 function updateBandwidth(bandwidth) {
     currentBandwidthSpan.textContent = bandwidth;
+    bandwidth = bandwidth;
 }
 
 createRoomButton.addEventListener('click', () => {
@@ -83,6 +165,70 @@ setBandwidthButton.addEventListener('click', () => {
     });
 });
 
+shareScreenButton.addEventListener('click', () => {
+    navigator.mediaDevices.getDisplayMedia().then(mediaStream => {
+        mediaStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, mediaStream);
+        })
+        // video2.setAttribute('src', URL.createObjectURL(mediaStream));
+        console.log('Create WebRTC offer');
+        peerConnection.createOffer().then(data => {
+            peerConnection.setLocalDescription(data).then(() => {
+                const newSdp = setMediaBitrate(data.sdp, 'video', bandwidth);
+                socket.emit('webrtc:offer', {
+                    id: userRoomId,
+                    spd: newSdp,
+                });
+            });
+        });
+    });
+});
+
+socket.on('webrtc:offer', offerData => {
+    if (offerData.id !== userRoomId) {
+        alert('Get webRTC offer for a wrong room:', offerData.id);
+        return;
+    }
+    peerConnection.setRemoteDescription(new RTCSessionDescription({
+        type: 'offer',
+        sdp: offerData.sdp,
+    })).then(() => {
+        console.log('Create WebRTC anaswer');
+        peerConnection.createAnswer().then(data => {
+            peerConnection.setLocalDescription(data).then(() => {
+                const newSdp = setMediaBitrate(data.sdp, 'video', bandwidth);
+                storedICECandidates.forEach(addICECandidate);
+                storedICECandidates = [];
+                socket.emit('webrtc:answer', {
+                    id: offerData.id,
+                    sdp: newSdp,
+                });
+            });
+        });
+    });
+});
+
+socket.on('webrtc:answer', answerData => {
+    if (answerData.id !== userRoomId) {
+        console.error('Get webRTC answer for a wrong room:', answerData.id);
+        return;
+    }
+    peerConnection.setRemoteDescription(new RTCSessionDescription({
+        type: 'answer',
+        sdp: answerData.sdp,
+    })).then(() => {
+
+    });
+});
+
+socket.on('webrtc:ice-candidate', iceCandidateData => {
+    if (iceCandidateData.id !== userRoomId) {
+        console.error('Get ICE Candidate for a wrong room:', iceCandidateData.id);
+        return;
+    }
+    addICECandidate(iceCandidateData);
+});
+
 socket.on('room:list', data => {
     data.rooms.forEach(room => {
         const option = document.createElement('option');
@@ -104,6 +250,7 @@ socket.on('room:joined', data => {
 
     inRoomSection.style.display = 'block';
     bandwithSection.style.display = 'block';
+    videoSection.style.display = 'block';
 });
 
 socket.on('room:update', data => {
