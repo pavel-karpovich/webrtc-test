@@ -67,7 +67,7 @@ joinRoomButton.addEventListener('click', () => {
     userRoomId = selectedRoomId;
 });
 
-setBandwidthButton.addEventListener('button', () => {
+setBandwidthButton.addEventListener('click', () => {
     if (!bandwidthInput.value) {
         alert('Bandwith is empty');
         return;
