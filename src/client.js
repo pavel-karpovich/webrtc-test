@@ -46,7 +46,6 @@ socket.emit('room:list');
 const peerConnection = new RTCPeerConnection({iceServers: webRtcICEServers});
 peerConnection.onicecandidate = function (event) {
     if (event.candidate) {
-        sendIceCandidate(event.candidate);
         socket.emit('webrtc:ice-candidate', {
             id: userRoomId,
             candidate: event.candidate.candidate,
