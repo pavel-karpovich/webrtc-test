@@ -1,4 +1,3 @@
-import e from 'express';
 import {io} from 'socket.io-client';
 import {uniqueNamesGenerator, adjectives, animals} from 'unique-names-generator';
 
