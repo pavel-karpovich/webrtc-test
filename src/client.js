@@ -15,6 +15,7 @@ const userNameSpan = document.getElementById('user_name');
 const roomNameSpan = document.getElementById('room_name');
 const currentBandwidthSpan = document.getElementById('current_bandwidth');
 const inRoomSection = document.getElementById('in_room_section');
+const bandwithSection = document.getElementById('bandwith_section');
 userNameSpan.textContent = userName;
 
 const roomsListElement = document.getElementById('rooms_list');
@@ -107,6 +108,7 @@ socket.on('room:joined', data => {
     roomPartiesListElement.appendChild(yourPartyOption);
 
     inRoomSection.style.display = 'block';
+    bandwithSection.style.display = 'block';
 });
 
 socket.on('room:update', data => {
