@@ -111,9 +111,23 @@ function setMediaBitrate(sdp, media, bitrate) {
 }
 
 
-function updateBandwidth(bandwidth) {
-    currentBandwidthSpan.textContent = bandwidth;
-    bandwidth = bandwidth;
+function updateBandwidth(newBandwidth) {
+
+    if (bandwidth !== newBandwidth && localStream) {
+        console.log('Re-create WebRTC offer');
+        peerConnection.createOffer({iceRestart: true}).then(data => {
+            peerConnection.setLocalDescription(data).then(() => {
+                const newSdp = setMediaBitrate(data.sdp, 'video', newBandwidth);
+                socket.emit('webrtc:offer', {
+                    id: userRoomId,
+                    sdp: newSdp,
+                });
+            });
+        });
+    }
+
+    currentBandwidthSpan.textContent = newBandwidth;
+    bandwidth = newBandwidth;
 }
 
 createRoomButton.addEventListener('click', () => {
@@ -165,9 +179,11 @@ setBandwidthButton.addEventListener('click', () => {
 
 shareScreenButton.addEventListener('click', () => {
     navigator.mediaDevices.getDisplayMedia().then(mediaStream => {
+        localStream = mediaStream;
         mediaStream.getTracks().forEach(track => {
             peerConnection.addTrack(track, mediaStream);
         })
+        console.log('set local video stream');
         videoElement.srcObject = mediaStream;
         console.log('Create WebRTC offer');
         peerConnection.createOffer().then(data => {
