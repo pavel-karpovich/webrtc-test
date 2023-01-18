@@ -64,7 +64,7 @@ joinRoomButton.addEventListener('click', () => {
         id: selectedRoomId,
         name: userName,
     });
-    userRoomId = data.id;
+    userRoomId = selectedRoomId;
 });
 
 setBandwidthButton.addEventListener('button', () => {
