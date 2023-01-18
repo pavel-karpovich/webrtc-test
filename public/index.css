@@ -17,3 +17,7 @@ html, body {
 .sep-block {
   margin: 8px;
 }
+
+.inline-block {
+  display: inline-block;
+}
