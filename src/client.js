@@ -40,7 +40,7 @@ const socket = new WebSocket('wss://web-rtc-test.herokuapp.com');
 function socketSend(event, data = {}) {
     socket.send(JSON.stringify({
         event,
-        ...{},
+        ...data,
     }));
 }
 
