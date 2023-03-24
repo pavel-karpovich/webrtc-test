@@ -1,7 +1,7 @@
 const http = require('http');
 const path = require('path');
 const express = require('express');
-const socketIO = require('socket.io');
+const ws = require('ws');
 
 
 const port = process.env.PORT || 5000;
@@ -17,24 +17,24 @@ const logger = {
 
 const app = express();
 const httpServer = http.Server(app);
-const io = socketIO(httpServer, {
-    cors: {
-      origin: [
-        'http://localhost:5001',
-        'https://localhost:5001',
-    ],
-    },
-});
+const wss = ws.Server({server: httpServer});
 
 const state = {
     rooms: {},
     allClients: [],
 }
 
+function socketSend(socket, event, data = {}) {
+    socket.send(JSON.stringify({
+        event,
+        ...data,
+    }));
+}
+
 function updateRoom(room) {
     const roomParties = room.parties.map(party => party.name);
     room.parties.forEach(party => {
-        party.socket.emit('room:update', {
+        socketSend(party.socket, 'room:update', {
             id: room.id,
             parties: roomParties,
             bandwidth: room.bandwidth,
@@ -48,102 +48,115 @@ function updateRoomsList() {
         name: room.name,
     }));
     state.allClients.forEach(socket => {
-        socket.emit('room:list', {rooms})
+        socketSend(socket, 'room:list', {rooms})
     });
 }
 
-io.on('connection', (socket) => {
+wss.on('connection', (socket) => {
 
     state.allClients.push(socket);
 
-    socket.on('room:list', () => {
-        updateRoomsList();
-    });
+    socket.on('message', message => {
 
-    socket.on('room:create', data => {
-        const id = uniqueId();
-        const roomName = data.name;
-        logger.log(`Create room ${id}`);
-        state.rooms[id] = {
-            id,
-            name: roomName,
-            parties: [],
-            bandwidth: 300,
-        };
-        updateRoomsList();
-    });
-
-    socket.on('room:join', payload => {
-        const roomId = payload.id;
-        const partyName = payload.name;
-        if (roomId in state.rooms) {
-            logger.log(`"${partyName}" joins room ${roomId}`);
-            state.rooms[roomId].parties.push({
-                name: partyName,
-                socket: socket,
-            });
-            updateRoom(state.rooms[roomId]);
-            socket.emit('room:joined', {id: roomId});
-        } else {
-            logger.log(`No room with id ${roomId}`);
+        let data
+        try {
+            data = JSON.parse(message);
+        } catch (e) {
+            console.error('unable to parse incoming message:', message);
+            return;
         }
-    });
-
-    socket.on('room:set-bandwidth', payload => {
-        const roomId = payload.id;
-        const bandwidth = payload.bandwidth;
-        if (roomId in state.rooms) {
-            logger.log(`Set bandwidth to ${bandwidth} Kb/s for room "${state.rooms[roomId].name}"`);
-            state.rooms[roomId].bandwidth = Number(bandwidth);
-            updateRoom(state.rooms[roomId]);
-        } else {
-            logger.log(`room:set-bandwidth - No room with id ${roomId}`);
-        }
-    });
-
-    socket.on('webrtc:offer', payload => {
-        const roomId = payload.id;
-        if (roomId in state.rooms) {
-            logger.log(`Send webrtc:offer`);
-            state.rooms[roomId].parties.forEach(party => {
-                if (party.socket !== socket) {
-                    party.socket.emit('webrtc:offer', payload);
+        switch (data.event) {
+            case 'room:list': {
+                updateRoomsList();
+                break;
+            }
+            case 'room:create': {
+                const id = uniqueId();
+                const roomName = data.name;
+                logger.log(`Create room ${id}`);
+                state.rooms[id] = {
+                    id,
+                    name: roomName,
+                    parties: [],
+                    bandwidth: 300,
+                };
+                updateRoomsList();
+                break;
+            }
+            case 'room:join': {
+                const roomId = data.id;
+                const partyName = data.name;
+                if (roomId in state.rooms) {
+                    logger.log(`"${partyName}" joins room ${roomId}`);
+                    state.rooms[roomId].parties.push({
+                        name: partyName,
+                        socket: socket,
+                    });
+                    updateRoom(state.rooms[roomId]);
+                    socketSend(socket, 'room:joined', {id: roomId});
+                } else {
+                    logger.log(`No room with id ${roomId}`);
                 }
-            });
-        } else {
-            logger.log(`webrtc:offer - No room with id ${roomId}`);
+                break;
+            }
+            case 'room:set-bandwidth': {
+                const roomId = data.id;
+                const bandwidth = data.bandwidth;
+                if (roomId in state.rooms) {
+                    logger.log(`Set bandwidth to ${bandwidth} Kb/s for room "${state.rooms[roomId].name}"`);
+                    state.rooms[roomId].bandwidth = Number(bandwidth);
+                    updateRoom(state.rooms[roomId]);
+                } else {
+                    logger.log(`room:set-bandwidth - No room with id ${roomId}`);
+                }
+                break;
+            }
+            case 'webrtc:offer': {
+                const roomId = data.id;
+                if (roomId in state.rooms) {
+                    logger.log(`Send webrtc:offer`);
+                    state.rooms[roomId].parties.forEach(party => {
+                        if (party.socket !== socket) {
+                            socketSend(party.socket, 'webrtc:offer', data);
+                        }
+                    });
+                } else {
+                    logger.log(`webrtc:offer - No room with id ${roomId}`);
+                }
+                break;
+            }
+            case 'webrtc:answer': {
+                const roomId = data.id;
+                if (roomId in state.rooms) {
+                    logger.log(`Send webrtc:answer`);
+                    state.rooms[roomId].parties.forEach(party => {
+                        if (party.socket !== socket) {
+                            socketSend(party.socket, 'webrtc:answer', data);
+                        }
+                    });
+                } else {
+                    logger.log(`webrtc:answer - No room with id ${roomId}`);
+                }
+                break;
+            }
+            case 'webrtc:ice-candidate': {
+                const roomId = data.id;
+                if (roomId in state.rooms) {
+                    logger.log(`Send webrtc:ice-candidate`);
+                    state.rooms[roomId].parties.forEach(party => {
+                        if (party.socket !== socket) {
+                            socketSend(party.socket, 'webrtc:ice-candidate', data);
+                        }
+                    });
+                } else {
+                    logger.log(`webrtc:ice-candidate - No room with id ${roomId}`);
+                }
+                break;
+            }
         }
     });
 
-    socket.on('webrtc:answer', payload => {
-        const roomId = payload.id;
-        if (roomId in state.rooms) {
-            logger.log(`Send webrtc:answer`);
-            state.rooms[roomId].parties.forEach(party => {
-                if (party.socket !== socket) {
-                    party.socket.emit('webrtc:answer', payload);
-                }
-            });
-        } else {
-            logger.log(`webrtc:answer - No room with id ${roomId}`);
-        }
-    });
-
-    socket.on('webrtc:ice-candidate', payload => {
-        const roomId = payload.id;
-        if (roomId in state.rooms) {
-            logger.log(`Send webrtc:ice-candidate`);
-            state.rooms[roomId].parties.forEach(party => {
-                if (party.socket !== socket) {
-                    party.socket.emit('webrtc:ice-candidate', payload);
-                }
-            });
-        } else {
-            logger.log(`webrtc:ice-candidate - No room with id ${roomId}`);
-        }
-    })
-
-    socket.on('disconnect', () => {
+    socket.on('close', () => {
         const delIndex = state.allClients.indexOf(socket);
         if (delIndex !== -1) {
             state.allClients.splice(delIndex, 1);

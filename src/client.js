@@ -1,7 +1,5 @@
-import {io} from 'socket.io-client';
 import {uniqueNamesGenerator, adjectives, animals} from 'unique-names-generator';
 
-console.log('@@@ Socket.IO: ', io);
 
 const userName = uniqueNamesGenerator({
     dictionaries: [adjectives, animals],
@@ -37,16 +35,21 @@ const bandwidthInput = document.getElementById('bandwidth');
 const shareScreenButton = document.getElementById('share_screen');
 const videoElement = document.getElementById('video');
 
-const socket = io('wss://web-rtc-test.herokuapp.com', {
-    autoConnect: true,
-});
+const socket = new WebSocket('wss://web-rtc-test.herokuapp.com');
 
-socket.emit('room:list');
+function socketSend(event, data = {}) {
+    socket.send(JSON.stringify({
+        event,
+        ...{},
+    }));
+}
+
+socketSend('room:list');
 
 const peerConnection = new RTCPeerConnection({iceServers: webRtcICEServers});
 peerConnection.onicecandidate = function (event) {
     if (event.candidate) {
-        socket.emit('webrtc:ice-candidate', {
+        socketSend('webrtc:ice-candidate', {
             id: userRoomId,
             candidate: event.candidate.candidate,
             sdpMid: event.candidate.sdpMid,
@@ -118,7 +121,7 @@ function updateBandwidth(newBandwidth) {
         peerConnection.createOffer({iceRestart: true}).then(data => {
             peerConnection.setLocalDescription(data).then(() => {
                 const newSdp = setMediaBitrate(data.sdp, 'video', newBandwidth);
-                socket.emit('webrtc:offer', {
+                socketSend('webrtc:offer', {
                     id: userRoomId,
                     sdp: newSdp,
                 });
@@ -139,7 +142,7 @@ createRoomButton.addEventListener('click', () => {
         alert('The room with such name already exists');
         return;
     }
-    socket.emit('room:create', {
+    socketSend('room:create', {
         name: newRoomNameInput.value,
     });
 });
@@ -154,7 +157,7 @@ joinRoomButton.addEventListener('click', () => {
         return;
     }
     const selectedRoomId = roomsListElement.selectedOptions[0].value;
-    socket.emit('room:join', {
+    socketSend('room:join', {
         id: selectedRoomId,
         name: userName,
     });
@@ -171,7 +174,7 @@ setBandwidthButton.addEventListener('click', () => {
         alert('Randwith is not a number');
         return;
     }
-    socket.emit('room:set-bandwidth', {
+    socketSend('room:set-bandwidth', {
         id: userRoomId,
         bandwidth,
     });
@@ -189,7 +192,7 @@ shareScreenButton.addEventListener('click', () => {
         peerConnection.createOffer().then(data => {
             peerConnection.setLocalDescription(data).then(() => {
                 const newSdp = setMediaBitrate(data.sdp, 'video', bandwidth);
-                socket.emit('webrtc:offer', {
+                socketSend('webrtc:offer', {
                     id: userRoomId,
                     sdp: newSdp,
                 });
@@ -198,7 +201,37 @@ shareScreenButton.addEventListener('click', () => {
     });
 });
 
-socket.on('webrtc:offer', offerData => {
+socket.onmessage = ({data: message}) => {
+    let data
+    try {
+        data = JSON.parse(message);
+    } catch (e) {
+        console.error('Parsing incoming message error:', message);
+        return;
+    }
+    switch (data.event) {
+        case 'webrtc:offer':
+            onWebRtcOffer(data);
+            break;
+        case 'webrtc:answer':
+            onWebRtcAnswer(data);
+            break;
+        case 'webrtc:ice-candidate':
+            onWebRtcIceCandidate(data);
+            break;
+        case 'room:list':
+            onRoomList(data);
+            break;
+        case 'room:joined':
+            onRoomJoined(data);
+            break;
+        case 'room:update':
+            onRoomUpdate(data);
+            break;
+    }
+};
+
+function onWebRtcOffer(offerData) {
     if (offerData.id !== userRoomId) {
         alert('Get webRTC offer for a wrong room:', offerData.id);
         return;
@@ -213,16 +246,16 @@ socket.on('webrtc:offer', offerData => {
                 const newSdp = setMediaBitrate(data.sdp, 'video', bandwidth);
                 storedICECandidates.forEach(addICECandidate);
                 storedICECandidates = [];
-                socket.emit('webrtc:answer', {
+                socketSend('webrtc:answer', {
                     id: offerData.id,
                     sdp: newSdp,
                 });
             });
         });
     });
-});
+}
 
-socket.on('webrtc:answer', answerData => {
+function onWebRtcAnswer(answerData) {
     if (answerData.id !== userRoomId) {
         console.error('Get webRTC answer for a wrong room:', answerData.id);
         return;
@@ -233,17 +266,17 @@ socket.on('webrtc:answer', answerData => {
     })).then(() => {
 
     });
-});
+}
 
-socket.on('webrtc:ice-candidate', iceCandidateData => {
+function onWebRtcIceCandidate(iceCandidateData) {
     if (iceCandidateData.id !== userRoomId) {
         console.error('Get ICE Candidate for a wrong room:', iceCandidateData.id);
         return;
     }
     addICECandidate(iceCandidateData);
-});
+}
 
-socket.on('room:list', data => {
+function onRoomList(data) {
     data.rooms.forEach(room => {
         const option = document.createElement('option');
         option.setAttribute('value', room.id);
@@ -251,9 +284,9 @@ socket.on('room:list', data => {
         roomsListElement.innerHTML = '';
         roomsListElement.appendChild(option);
     });
-});
+}
 
-socket.on('room:joined', data => {
+function onRoomJoined(data) {
 
     const roomOption = [].find.call(roomsListElement.children, optionElement => optionElement.value === data.id);
     if (!roomOption) {
@@ -265,9 +298,9 @@ socket.on('room:joined', data => {
     inRoomSection.style.display = 'block';
     bandwithSection.style.display = 'block';
     videoSection.style.display = 'block';
-});
+}
 
-socket.on('room:update', data => {
+function onRoomUpdate(data) {
     if (userRoomId !== data.id) {
         console.error('The client thinks we are in a room', userRoomId, 'but server sends update for room', data.id);
         return;
@@ -279,4 +312,4 @@ socket.on('room:update', data => {
         roomPartiesListElement.appendChild(partyOption);
     });
     updateBandwidth(data.bandwidth);
-});
+}
