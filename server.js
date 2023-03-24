@@ -17,7 +17,7 @@ const logger = {
 
 const app = express();
 const httpServer = http.Server(app);
-const wss = ws.Server({server: httpServer});
+const wss = new ws.Server({server: httpServer});
 
 const state = {
     rooms: {},
