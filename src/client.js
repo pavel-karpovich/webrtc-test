@@ -44,7 +44,10 @@ function socketSend(event, data = {}) {
     }));
 }
 
-socketSend('room:list');
+socket.onopen = () => {
+    socketSend('room:list');
+};
+
 
 const peerConnection = new RTCPeerConnection({iceServers: webRtcICEServers});
 peerConnection.onicecandidate = function (event) {
